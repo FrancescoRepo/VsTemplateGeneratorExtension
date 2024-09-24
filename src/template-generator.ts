@@ -1,27 +1,101 @@
 import path from "path";
 import * as vscode from "vscode";
 import * as fs from "fs";
+import archiver from "archiver";
 
 export class TemplateGenerator {
-  public generateVSTemplate(
+  public createZipWithTemplate(
     selectedProject: string,
     templateName: string,
     templateDescription: string
   ) {
-    const workspaceFolders = vscode.workspace.workspaceFolders || [];
-    if (workspaceFolders.length === 0) {
-      vscode.window.showErrorMessage("No workspace folder found.");
-      return;
-    }
+    const projectPath = this.getProjectPath(selectedProject);
+    const zipFileName = `${templateName}.zip`;
+    const output = fs.createWriteStream(path.join(projectPath, zipFileName));
+    const archive = archiver("zip", {
+      zlib: { level: 9 }, // Set the compression level
+    });
 
-    const solutionDir = workspaceFolders[0].uri.fsPath;
-    const projectPath = path.join(solutionDir, selectedProject);
+    output.on("close", function () {
+      console.log(`${archive.pointer()} total bytes`);
+      console.log("ZIP file has been created successfully.");
+    });
 
+    archive.on("error", function (err) {
+      console.error(err);
+      throw err;
+    });
+
+    // Pipe the archive to the output file
+    archive.pipe(output);
+
+    const vstemplateContent = this.generateVSTemplate(
+      selectedProject,
+      templateName,
+      templateDescription
+    );
+
+    // Add the .vstemplate file content to the zip
+    archive.append(vstemplateContent, { name: `${templateName}.vstemplate` });
+
+    // Add files listed in the .vstemplate (by traversing the directory)
+    this.addProjectFilesToZip(archive, projectPath, projectPath);
+
+    // Finalize the archive
+    archive.finalize();
+
+    vscode.window.showInformationMessage(
+      `Zip file generated successfully at: ${projectPath}`
+    );
+  }
+
+  private addProjectFilesToZip(
+    archive: archiver.Archiver,
+    directoryPath: string,
+    baseDirectory: string
+  ) {
+    const items = fs.readdirSync(directoryPath);
+
+    items.forEach((item) => {
+      const itemPath = path.join(directoryPath, item);
+      const relativePath = path
+        .relative(baseDirectory, itemPath)
+        .replace(/\\/g, "/"); // Convert to forward slashes for the ZIP
+
+      const stats = fs.statSync(itemPath);
+
+      if (stats.isDirectory()) {
+        const folderName = path.basename(itemPath);
+
+        // Ignore "bin", "obj", and directories starting with "."
+        if (
+          folderName === "bin" ||
+          folderName === "obj" ||
+          folderName.startsWith(".")
+        ) {
+          return; // Skip these folders
+        }
+
+        // Recursively process subdirectories
+        this.addProjectFilesToZip(archive, itemPath, baseDirectory);
+      } else if (stats.isFile()) {
+        // Add file to ZIP with its relative path
+        archive.file(itemPath, { name: relativePath });
+      }
+    });
+  }
+
+  private generateVSTemplate(
+    selectedProject: string,
+    templateName: string,
+    templateDescription: string
+  ): string {
+    const projectPath = this.getProjectPath(selectedProject);
     if (!fs.existsSync(projectPath)) {
       vscode.window.showErrorMessage(
         `Project folder not found: ${selectedProject}`
       );
-      return;
+      return "";
     }
 
     // Recursively gather project files and generate ProjectItem tags
@@ -32,19 +106,8 @@ export class TemplateGenerator {
       templateDescription,
       projectItemsXml
     );
-    const vstemplatePath = path.join(projectPath, `${templateName}.vstemplate`);
 
-    fs.writeFile(vstemplatePath, vstemplateContent, "utf-8", (err) => {
-      if (err) {
-        vscode.window.showErrorMessage(
-          `Error writing template: ${err.message}`
-        );
-        return;
-      }
-      vscode.window.showInformationMessage(
-        `Template generated at: ${vstemplatePath}`
-      );
-    });
+    return vstemplateContent;
   }
 
   private getProjectItemsXml(
@@ -70,6 +133,7 @@ export class TemplateGenerator {
         if (
           folderName === "bin" ||
           folderName === "obj" ||
+          folderName === "PublishProfiles" ||
           folderName.startsWith(".")
         ) {
           // Skip these folders
@@ -121,5 +185,19 @@ export class TemplateGenerator {
         <CustomParameter Name="$safeprojectname$" Value="$safeprojectname$" />
       </CustomParameters>
     </VSTemplate>`;
+  }
+
+  private getProjectPath(selectedProject: string): string {
+    const workspaceFolders = vscode.workspace.workspaceFolders || [];
+
+    if (workspaceFolders.length === 0) {
+      vscode.window.showErrorMessage("No workspace folder found.");
+      return "";
+    }
+
+    const solutionDir = workspaceFolders[0].uri.fsPath;
+    const projectPath = path.join(solutionDir, selectedProject);
+
+    return projectPath;
   }
 }

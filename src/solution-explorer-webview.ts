@@ -47,7 +47,7 @@ export class SolutionExplorerWebview implements vscode.WebviewViewProvider {
         );
       } else if (message.command === "generateTemplate") {
         const templateGenerator = new TemplateGenerator();
-        templateGenerator.generateVSTemplate(
+        templateGenerator.createZipWithTemplate(
           message.selectedProject,
           message.templateName,
           message.templateDescription

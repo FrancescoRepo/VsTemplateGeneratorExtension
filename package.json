@@ -44,6 +44,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@types/archiver": "^6.0.2",
     "@types/mocha": "^10.0.7",
     "@types/node": "20.x",
     "@types/vscode": "^1.93.0",
@@ -58,6 +59,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "archiver": "^7.0.1",
     "fs": "^0.0.1-security"
   }
 }
