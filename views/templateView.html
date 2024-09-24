@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solution Explorer</title>
+
+    <style>
+        /* Use VS Code color variables */
+        body {
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-editor-foreground);
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            padding: 16px;
+        }
+
+        h3 {
+            color: var(--vscode-editor-foreground);
+            margin-bottom: 8px;
+        }
+
+        select {
+            width: 100%; /* Make the select fill the width */
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            padding: 4px;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            border-radius: 4px;
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+        }
+
+        select:hover {
+            border-color: var(--vscode-focusBorder);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .form-group {
+            margin-top: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--vscode-editor-foreground);
+        }
+
+        .form-group input {
+            width: 100%;
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            padding: 4px;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            margin-top: 12px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: var(--vscode-font-size);
+        }
+
+        .btn:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        .error {
+            border-color: red;
+        }
+    </style>
+</head>
+<body>
+    <h3>Select a Project</h3>
+    <select id="projectDropdown">
+        <option value="">-- Select a project --</option>
+        <!-- Project options will be injected here -->
+    </select>
+
+    <div id="templateInputs" class="hidden">
+        <div class="form-group">
+            <label for="templateName">Template Name</label>
+            <input type="text" id="templateName" placeholder="Enter template name">
+        </div>
+        <div class="form-group">
+            <label for="templateDescription">Template Description</label>
+            <input type="text" id="templateDescription" placeholder="Enter template description">
+        </div>
+        <button id="generateButton" class="btn">Generate Template</button>
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+
+        // Handle dropdown change
+        document.getElementById('projectDropdown').addEventListener('change', function() {
+            const selectedProject = this.value;
+            const templateInputs = document.getElementById('templateInputs');
+
+            if (selectedProject) {
+                templateInputs.classList.remove('hidden'); // Show inputs if a project is selected
+            } else {
+                templateInputs.classList.add('hidden'); // Hide inputs if no project is selected
+            }
+        });
+
+        // Handle generate button click
+        document.getElementById('generateButton').onclick = function() {
+            const templateName = document.getElementById('templateName');
+            const templateDescription = document.getElementById('templateDescription');
+            let valid = true;
+
+            // Clear previous error styles
+            templateName.classList.remove('error');
+            templateDescription.classList.remove('error');
+
+            // Validate inputs
+            if (!templateName.value.trim()) {
+                templateName.classList.add('error');
+                valid = false;
+            }
+            if (!templateDescription.value.trim()) {
+                templateDescription.classList.add('error');
+                valid = false;
+            }
+
+            // If valid, send message to extension
+            if (valid) {
+                vscode.postMessage({
+                    command: 'generateTemplate',
+                    selectedProject: document.getElementById('projectDropdown').value,
+                    templateName: templateName.value,
+                    templateDescription: templateDescription.value
+                });
+            } else {
+                alert("Please fill in all required fields.");
+            }
+        };
+    </script>
+</body>
+</html>
