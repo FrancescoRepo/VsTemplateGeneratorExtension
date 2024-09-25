@@ -16,7 +16,7 @@
       "activitybar": [
         {
           "id": "mySolutionExplorer",
-          "title": "🛠 Solution Explorer",
+          "title": "🛠 VsTemplate Generator",
           "icon": "resources/icon.png"
         }
       ]

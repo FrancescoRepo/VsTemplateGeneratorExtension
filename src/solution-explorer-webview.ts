@@ -2,6 +2,7 @@ import path from "path";
 import * as vscode from "vscode";
 import * as fs from "fs";
 import { TemplateGenerator } from "./template-generator";
+import { IProject } from "./models/IProject";
 
 export class SolutionExplorerWebview implements vscode.WebviewViewProvider {
   private _htmlFilePath: any | undefined;
@@ -21,23 +22,12 @@ export class SolutionExplorerWebview implements vscode.WebviewViewProvider {
       enableScripts: true,
     };
 
-    fs.readFile(this._htmlFilePath, "utf-8", (err, htmlContent) => {
-      if (err) {
-        console.error("Error reading HTML file:", err);
-        return;
-      }
-
-      // Insert additional JavaScript to inject project options into the HTML
-      webviewView.webview.html = htmlContent.replace(
-        "<!-- Project options will be injected here -->",
-        this.getProjectOptions()
+    this.getHtmlContent().then((htmlContent: string) => {
+      webviewView.webview.html = this.replaceHtmlContent(
+        htmlContent,
+        webviewView
       );
     });
-
-    webviewView.webview.html = this.getHtmlContent().replace(
-      "<!-- Project options will be injected here -->",
-      this.getProjectOptions()
-    );
 
     // Handle messages from the webview (e.g., when the user selects a project)
     webviewView.webview.onDidReceiveMessage((message) => {
@@ -50,7 +40,9 @@ export class SolutionExplorerWebview implements vscode.WebviewViewProvider {
         templateGenerator.createZipWithTemplate(
           message.selectedProject,
           message.templateName,
-          message.templateDescription
+          message.templateDescription,
+          message.projectFile,
+          message.excludePaths
         );
       }
     });
@@ -58,27 +50,27 @@ export class SolutionExplorerWebview implements vscode.WebviewViewProvider {
     // Optionally refresh content when the webview becomes visible
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
-        webviewView.webview.html = this.getHtmlContent().replace(
-          "<!-- Project options will be injected here -->",
-          this.getProjectOptions()
-        );
+        this.getHtmlContent().then((htmlContent: string) => {
+          webviewView.webview.html = this.replaceHtmlContent(
+            htmlContent,
+            webviewView
+          );
+        });
       }
     });
   }
 
-  // Method to generate HTML content for the webview
-  private getHtmlContent(): string {
-    fs.readFile(this._htmlFilePath, "utf-8", (err, htmlContent) => {
-      if (err) {
-        console.error("Error reading HTML file:", err);
-        return;
-      }
-
-      // Insert additional JavaScript to inject project options into the HTML
-      return htmlContent;
+  private getHtmlContent(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      fs.readFile(this._htmlFilePath, "utf-8", (err, htmlContent) => {
+        if (err) {
+          console.error("Error reading HTML file:", err);
+          reject(err);
+          return;
+        }
+        resolve(htmlContent);
+      });
     });
-
-    return "";
   }
 
   private getProjectOptions(): string {
@@ -88,7 +80,7 @@ export class SolutionExplorerWebview implements vscode.WebviewViewProvider {
     }
 
     const solutionDir = workspaceFolders[0].uri.fsPath;
-    let projectNames: string[] = [];
+    let projects: IProject[] = [];
 
     try {
       // Retrieve all .sln files in the workspace
@@ -107,18 +99,58 @@ export class SolutionExplorerWebview implements vscode.WebviewViewProvider {
         .filter((line) => line.startsWith("Project("));
 
       // Extract project names from the solution file
-      projectNames = projectLines
+      projects = projectLines
         .map((line) => {
-          const match = line.match(/=\s*"([^"]+)"\s*,/);
-          return match ? match[1] : ""; // Get the project name from the match
+          // Adjusted regex to capture both project name and file path
+          const match = line.match(/=\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,/);
+          if (match) {
+            const projectName = match[1]; // Project name
+            const projectFilePath = match[2]; // Project file path
+
+            // Get the project file name only (last part of the path)
+            const projectFileName = path.basename(projectFilePath);
+
+            const project: IProject = {
+              name: projectName,
+              file: projectFileName,
+            };
+            return project;
+          }
+          return;
         })
-        .filter((name) => name); // Filter out empty names
+        .filter((project): project is IProject => project !== null);
     } catch (error) {
       console.error("Error reading solution file:", error);
     }
 
-    return projectNames
-      .map((name) => `<option value="${name}">${name}</option>`)
+    return projects
+      .map(
+        (project) =>
+          `<option value="${project.name}" data-project-file="${project.file}">${project.name}</option>`
+      )
       .join("");
+  }
+
+  private replaceHtmlContent(
+    htmlContent: string,
+    webviewView: vscode.WebviewView
+  ): string {
+    htmlContent = htmlContent.replace(
+      "<!-- Project options will be injected here -->",
+      this.getProjectOptions()
+    );
+
+    const cssPathOnDisk = vscode.Uri.file(
+      path.join(this.context.extensionPath, "views", "css", "style.css")
+    );
+    const cssUri = webviewView.webview.asWebviewUri(cssPathOnDisk);
+    const jsPathOnDisk = vscode.Uri.file(
+      path.join(this.context.extensionPath, "views", "js", "index.js")
+    );
+    const jsUri = webviewView.webview.asWebviewUri(jsPathOnDisk);
+
+    return htmlContent
+      .replace("{{cssUri}}", `${cssUri}`)
+      .replace("{{jsUri}}", `${jsUri}`);
   }
 }

@@ -7,52 +7,68 @@ export class TemplateGenerator {
   public createZipWithTemplate(
     selectedProject: string,
     templateName: string,
-    templateDescription: string
+    templateDescription: string,
+    projectFile: string,
+    excludedPaths: string[]
   ) {
-    const projectPath = this.getProjectPath(selectedProject);
-    const zipFileName = `${templateName}.zip`;
-    const output = fs.createWriteStream(path.join(projectPath, zipFileName));
-    const archive = archiver("zip", {
-      zlib: { level: 9 }, // Set the compression level
-    });
+    try {
+      const projectPath = this.getProjectPath(selectedProject);
+      const zipFileName = `${templateName}.zip`;
+      const output = fs.createWriteStream(path.join(projectPath, zipFileName));
+      const archive = archiver("zip", {
+        zlib: { level: 9 }, // Set the compression level
+      });
 
-    output.on("close", function () {
-      console.log(`${archive.pointer()} total bytes`);
-      console.log("ZIP file has been created successfully.");
-    });
+      output.on("close", function () {
+        console.log(`${archive.pointer()} total bytes`);
+        console.log("ZIP file has been created successfully.");
+      });
 
-    archive.on("error", function (err) {
-      console.error(err);
-      throw err;
-    });
+      archive.on("error", function (err) {
+        console.error(err);
+        throw err;
+      });
 
-    // Pipe the archive to the output file
-    archive.pipe(output);
+      // Pipe the archive to the output file
+      archive.pipe(output);
 
-    const vstemplateContent = this.generateVSTemplate(
-      selectedProject,
-      templateName,
-      templateDescription
-    );
+      const vstemplateContent = this.generateVSTemplate(
+        selectedProject,
+        templateName,
+        templateDescription,
+        projectFile,
+        excludedPaths
+      );
 
-    // Add the .vstemplate file content to the zip
-    archive.append(vstemplateContent, { name: `${templateName}.vstemplate` });
+      // Add the .vstemplate file content to the zip
+      archive.append(vstemplateContent, { name: `${templateName}.vstemplate` });
 
-    // Add files listed in the .vstemplate (by traversing the directory)
-    this.addProjectFilesToZip(archive, projectPath, projectPath);
+      // Add files listed in the .vstemplate (by traversing the directory)
+      this.addProjectFilesToZip(
+        archive,
+        projectPath,
+        projectPath,
+        excludedPaths
+      );
 
-    // Finalize the archive
-    archive.finalize();
+      // Finalize the archive
+      archive.finalize();
 
-    vscode.window.showInformationMessage(
-      `Zip file generated successfully at: ${projectPath}`
-    );
+      vscode.window.showInformationMessage(
+        `Template generated successfully at: ${projectPath}`
+      );
+    } catch (error) {
+      vscode.window.showErrorMessage(
+        `Error while generating template: ${error}`
+      );
+    }
   }
 
   private addProjectFilesToZip(
     archive: archiver.Archiver,
     directoryPath: string,
-    baseDirectory: string
+    baseDirectory: string,
+    excludedPaths: string[]
   ) {
     const items = fs.readdirSync(directoryPath);
 
@@ -71,14 +87,24 @@ export class TemplateGenerator {
         if (
           folderName === "bin" ||
           folderName === "obj" ||
-          folderName.startsWith(".")
+          folderName === "node_modules" ||
+          folderName.startsWith(".") ||
+          excludedPaths.includes(folderName)
         ) {
           return; // Skip these folders
         }
 
         // Recursively process subdirectories
-        this.addProjectFilesToZip(archive, itemPath, baseDirectory);
+        this.addProjectFilesToZip(
+          archive,
+          itemPath,
+          baseDirectory,
+          excludedPaths
+        );
       } else if (stats.isFile()) {
+        if (excludedPaths.includes(relativePath)) {
+          return; // Skip this file
+        }
         // Add file to ZIP with its relative path
         archive.file(itemPath, { name: relativePath });
       }
@@ -88,7 +114,9 @@ export class TemplateGenerator {
   private generateVSTemplate(
     selectedProject: string,
     templateName: string,
-    templateDescription: string
+    templateDescription: string,
+    projectFile: string,
+    excludedPaths: string[]
   ): string {
     const projectPath = this.getProjectPath(selectedProject);
     if (!fs.existsSync(projectPath)) {
@@ -99,12 +127,17 @@ export class TemplateGenerator {
     }
 
     // Recursively gather project files and generate ProjectItem tags
-    const projectItemsXml = this.getProjectItemsXml(projectPath, projectPath); // passing projectPath twice for relative paths
+    const projectItemsXml = this.getProjectItemsXml(
+      projectPath,
+      projectPath,
+      excludedPaths
+    ); // passing projectPath twice for relative paths
 
     const vstemplateContent = this.createVSTemplateContent(
       templateName,
       templateDescription,
-      projectItemsXml
+      projectItemsXml,
+      projectFile
     );
 
     return vstemplateContent;
@@ -113,6 +146,7 @@ export class TemplateGenerator {
   private getProjectItemsXml(
     directoryPath: string,
     baseDirectory: string,
+    excludedPaths: string[],
     indentLevel: number = 2
   ): string {
     let projectItemsXml = "";
@@ -122,11 +156,8 @@ export class TemplateGenerator {
 
     items.forEach((item) => {
       const itemPath = path.join(directoryPath, item);
-      const relativePath = path
-        .relative(baseDirectory, itemPath)
-        .replace(/\\/g, "/"); // Convert to forward slashes for XML
-
       const stats = fs.statSync(itemPath);
+
       if (stats.isDirectory()) {
         const folderName = path.basename(itemPath);
 
@@ -134,19 +165,27 @@ export class TemplateGenerator {
           folderName === "bin" ||
           folderName === "obj" ||
           folderName === "PublishProfiles" ||
-          folderName.startsWith(".")
+          folderName.startsWith(".") ||
+          excludedPaths.includes(folderName)
         ) {
           // Skip these folders
           return;
         }
         // Recursively process subdirectories
         projectItemsXml += `<Folder Name="${folderName}" TargetFolderName="${folderName}">`;
-        projectItemsXml += this.getProjectItemsXml(itemPath, baseDirectory);
+        projectItemsXml += this.getProjectItemsXml(
+          itemPath,
+          baseDirectory,
+          excludedPaths
+        );
         projectItemsXml += `</Folder>`;
       } else if (stats.isFile()) {
         const fileName = path.basename(itemPath);
 
-        if (fileName.includes(".vstemplate")) {
+        if (
+          fileName.includes(".vstemplate") ||
+          excludedPaths.includes(fileName)
+        ) {
           return;
         }
         // Add a ProjectItem for each file
@@ -160,25 +199,33 @@ export class TemplateGenerator {
   private createVSTemplateContent(
     templateName: string,
     templateDescription: string,
-    projectItemsXml: string
+    projectItemsXml: string,
+    projectFile: string
   ): string {
+    const projectType = this.getProjectType(projectFile);
+    if (projectType === "Unknown") {
+      throw "Unsupported type of project";
+    }
+    const defaultName = path
+      .basename(projectFile)
+      .replace(path.extname(projectFile).toLowerCase(), "");
     return `<?xml version="1.0" encoding="utf-8"?>
     <VSTemplate Version="3.0.0" Type="Project" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
       <TemplateData>
         <Name>${templateName}</Name>
         <Description>${templateDescription}</Description>
-        <ProjectType>CSharp</ProjectType>
+        <ProjectType>${projectType}</ProjectType>
         <SortOrder>1000</SortOrder>
         <CreateNewFolder>true</CreateNewFolder>
-        <DefaultName>$projectname$</DefaultName>
+        <DefaultName>${defaultName}</DefaultName>
         <ProvideDefaultName>true</ProvideDefaultName>
         <LocationField>Enabled</LocationField>
         <EnableLocationBrowseButton>true</EnableLocationBrowseButton>
         <CreateInPlace>true</CreateInPlace>
       </TemplateData>
       <TemplateContent>
-        <Project File="$safeprojectname$.csproj" TargetFileName="$safeprojectname$.csproj" ReplaceParameters="true">
-          ${projectItemsXml.trim()} <!-- Files from the project will be injected here -->
+        <Project File="${projectFile}" TargetFileName="${projectFile}" ReplaceParameters="true">
+          ${projectItemsXml.trim()}
         </Project>
       </TemplateContent>
       <CustomParameters>
@@ -199,5 +246,26 @@ export class TemplateGenerator {
     const projectPath = path.join(solutionDir, selectedProject);
 
     return projectPath;
+  }
+
+  private getProjectType(projectFile: string) {
+    const ext = path.extname(projectFile).toLowerCase();
+
+    switch (ext) {
+      case ".razor":
+      case ".csproj":
+        return "CSharp";
+      case ".fsproj":
+        return "FSharp";
+      case ".vbproj":
+        return "VB";
+      case ".esproj":
+      case ".jsproj":
+        return "JavaScript";
+      case ".vcxproj":
+        return "C++";
+      default:
+        return "Unknown";
+    }
   }
 }
