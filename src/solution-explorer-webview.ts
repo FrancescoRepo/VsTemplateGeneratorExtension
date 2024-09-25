@@ -6,12 +6,19 @@ import { IProject } from "./models/IProject";
 
 export class SolutionExplorerWebview implements vscode.WebviewViewProvider {
   private _htmlFilePath: any | undefined;
+  private _emptyViewHtmlFilePath: any | undefined;
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this._htmlFilePath = path.join(
       this.context.extensionPath,
       "views",
       "templateView.html"
+    );
+
+    this._emptyViewHtmlFilePath = path.join(
+      this.context.extensionPath,
+      "views",
+      "emptyView.html"
     );
   }
 
@@ -63,38 +70,43 @@ export class SolutionExplorerWebview implements vscode.WebviewViewProvider {
 
   private getHtmlContent(): Promise<string> {
     return new Promise((resolve, reject) => {
-      fs.readFile(this._htmlFilePath, "utf-8", (err, htmlContent) => {
-        if (err) {
-          console.error("Error reading HTML file:", err);
-          reject(err);
-          return;
-        }
-        resolve(htmlContent);
-      });
+      const slnContent = this.getSolutionContent();
+      if (slnContent !== "") {
+        fs.readFile(this._htmlFilePath, "utf-8", (err, htmlContent) => {
+          if (err) {
+            console.error("Error reading HTML file:", err);
+            reject(err);
+            return;
+          }
+          resolve(htmlContent);
+        });
+      } else {
+        fs.readFile(
+          this._emptyViewHtmlFilePath,
+          "utf-8",
+          (err, htmlContent) => {
+            if (err) {
+              console.error("Error reading HTML file:", err);
+              reject(err);
+              return;
+            }
+            resolve(htmlContent);
+          }
+        );
+      }
     });
   }
 
   private getProjectOptions(): string {
-    const workspaceFolders = vscode.workspace.workspaceFolders || [];
-    if (workspaceFolders.length === 0) {
-      return "";
-    }
-
-    const solutionDir = workspaceFolders[0].uri.fsPath;
     let projects: IProject[] = [];
 
     try {
       // Retrieve all .sln files in the workspace
-      const slnFiles = fs
-        .readdirSync(solutionDir)
-        .filter((file) => file.endsWith(".sln"));
-      if (slnFiles.length === 0) {
+      const slnContent = this.getSolutionContent();
+      if (slnContent === "") {
         return "";
       }
 
-      // Use the first .sln file found
-      const slnFileFullPath = path.join(solutionDir, slnFiles[0]);
-      const slnContent = fs.readFileSync(slnFileFullPath, "utf-8");
       const projectLines = slnContent
         .split("\n")
         .filter((line) => line.startsWith("Project("));
@@ -153,5 +165,21 @@ export class SolutionExplorerWebview implements vscode.WebviewViewProvider {
     return htmlContent
       .replace("{{cssUri}}", `${cssUri}`)
       .replace("{{jsUri}}", `${jsUri}`);
+  }
+
+  private getSolutionContent(): string {
+    const workspaceFolders = vscode.workspace.workspaceFolders || [];
+    if (workspaceFolders.length === 0) {
+      return "";
+    }
+    const solutionDir = workspaceFolders[0].uri.fsPath;
+    const slnFiles = fs
+      .readdirSync(solutionDir)
+      .filter((file) => file.endsWith(".sln"));
+    if (slnFiles.length === 0) {
+      return "";
+    }
+    const slnFileFullPath = path.join(solutionDir, slnFiles[0]);
+    return fs.readFileSync(slnFileFullPath, "utf-8");
   }
 }

@@ -2,6 +2,8 @@ import path from "path";
 import * as vscode from "vscode";
 import * as fs from "fs";
 import archiver from "archiver";
+import { Uri } from "vscode";
+import { exec } from "child_process";
 
 export class TemplateGenerator {
   public createZipWithTemplate(
@@ -62,9 +64,21 @@ export class TemplateGenerator {
       // Finalize the archive
       archive.finalize();
 
-      vscode.window.showInformationMessage(
-        `Template generated successfully at: ${projectPath}`
-      );
+      vscode.window
+        .showInformationMessage(
+          `Template generated successfully at: ${projectPath}`,
+          "Open"
+        )
+        .then((action) => {
+          if (action === "Open") {
+            exec(`explorer ${projectPath}`, (err) => {
+              console.log(err);
+              if (err) {
+                console.error(err);
+              }
+            });
+          }
+        });
     } catch (error) {
       vscode.window.showErrorMessage(
         `Error while generating template: ${error}`
