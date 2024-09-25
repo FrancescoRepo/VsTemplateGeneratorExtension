@@ -9,7 +9,8 @@ export class TemplateGenerator {
     templateName: string,
     templateDescription: string,
     projectFile: string,
-    excludedPaths: string[]
+    excludedPaths: string[],
+    extensionPath: string
   ) {
     try {
       const projectPath = this.getProjectPath(selectedProject);
@@ -42,6 +43,13 @@ export class TemplateGenerator {
 
       // Add the .vstemplate file content to the zip
       archive.append(vstemplateContent, { name: `${templateName}.vstemplate` });
+
+      const templateIcon = path.join(
+        extensionPath,
+        "resources",
+        "TemplateIcon.ico"
+      );
+      archive.file(templateIcon, { name: "TemplateIcon.ico" });
 
       // Add files listed in the .vstemplate (by traversing the directory)
       this.addProjectFilesToZip(
@@ -222,6 +230,7 @@ export class TemplateGenerator {
         <LocationField>Enabled</LocationField>
         <EnableLocationBrowseButton>true</EnableLocationBrowseButton>
         <CreateInPlace>true</CreateInPlace>
+        <Icon>__TemplateIcon.ico</Icon>
       </TemplateData>
       <TemplateContent>
         <Project File="${projectFile}" TargetFileName="${projectFile}" ReplaceParameters="true">

@@ -42,7 +42,8 @@ export class SolutionExplorerWebview implements vscode.WebviewViewProvider {
           message.templateName,
           message.templateDescription,
           message.projectFile,
-          message.excludePaths
+          message.excludePaths,
+          this.context.extensionPath
         );
       }
     });

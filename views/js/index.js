@@ -21,7 +21,7 @@ if (previousState) {
   dropdown.value = previousState.selectedProject;
   templateNameInput.value = previousState.templateName ?? "";
   templateDescriptionInput.value = previousState.templateDescription ?? "";
-  excludedPaths = previousState.excludePaths ?? [];
+  excludedPaths = previousState.excludedPaths ?? [];
   projectFile = previousState.projectFile;
   renderList();
 
@@ -68,19 +68,23 @@ function renderList() {
 addExcludePathButton.addEventListener("click", function () {
   const path = excludePathInput.value.trim();
   if (path) {
-    excludedPaths.push(path);
-    excludePathInput.value = "";
-    renderList();
+    if (!excludedPaths.includes(path)) {
+      excludedPaths.push(path);
+      excludePathInput.value = "";
+      renderList();
 
-    const currentState = vscode.getState();
-    if (currentState) {
-      vscode.setState({
-        selectedProject: currentState.selectedProject,
-        templateName: currentState.templateName,
-        templateDescription: currentState.templateDescription,
-        projectFile: currentState.projectFile,
-        excludedPaths: excludedPaths,
-      });
+      const currentState = vscode.getState();
+      if (currentState) {
+        vscode.setState({
+          selectedProject: currentState.selectedProject,
+          templateName: currentState.templateName,
+          templateDescription: currentState.templateDescription,
+          projectFile: currentState.projectFile,
+          excludedPaths: excludedPaths,
+        });
+      }
+    } else {
+      excludePathInput.value = "";
     }
   }
 });
@@ -88,6 +92,10 @@ addExcludePathButton.addEventListener("click", function () {
 // Handle dropdown change
 dropdown.addEventListener("change", function () {
   selectedProject = this.value;
+  templateNameInput.value = "";
+  templateDescriptionInput.value = "";
+  excludedPaths = [];
+  renderList();
 
   if (selectedProject) {
     templateInputs.classList.remove("hidden"); // Show inputs if a project is selected
@@ -101,6 +109,9 @@ dropdown.addEventListener("change", function () {
   vscode.setState({
     selectedProject: selectedProject,
     projectFile: projectFile,
+    templateName: "",
+    templateDescription: "",
+    excludedPaths: [],
   });
 });
 
