@@ -1,8 +1,8 @@
-# Visual Studio Code Template Generator Extension
+# VsTemplate File Generator Extension
 
 ## Overview
 
-The **Visual Studio Code Template Generator Extension** is a powerful tool designed to simplify the process of creating project templates directly from your Visual Studio Code environment. This extension enables users to generate reusable templates for various types of projects, complete with customizable options and exclusion rules.
+The **VsTemplate File Generator Extension** is a tool designed to simplify the process of creating project templates directly from your Visual Studio Code environment. This extension enables users to generate reusable templates for various types of projects, complete with customizable options and exclusion rules.
 
 ## Features
 
@@ -17,7 +17,7 @@ The **Visual Studio Code Template Generator Extension** is a powerful tool desig
 
 1. Open Visual Studio Code.
 2. Navigate to the Extensions view by clicking on the Extensions icon in the Activity Bar on the side of the window.
-3. Search for **Template Generator Extension**.
+3. Search for **VsTemplate Template File Generator Extension**.
 4. Click on the **Install** button.
 
 ### Usage
@@ -27,15 +27,7 @@ The **Visual Studio Code Template Generator Extension** is a powerful tool desig
 3. Fill in the **Template Name** and **Template Description** fields.
 4. Use the multi-select dropdowns for additional configurations such as language tags, platform tags.
 5. Specify any folders or files to exclude from the template generation.
-6. Click the **Generate Template** button to create your project template.
-
-### Example Workflow
-
-1. **Select Project**: Choose a project from your solution to base your template on.
-2. **Configure Template**: Set the template name, description, and any other necessary parameters.
-3. **Generate Template**: Click the button to generate the output.
-
-![Alt text for your GIF](./resources/vstemplategenerator_cropped.gif)
+6. Click the **Generate Template** button to generate the output.
 
 ## Project Structure
 
