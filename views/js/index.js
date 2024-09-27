@@ -1,6 +1,6 @@
 const vscode = acquireVsCodeApi();
 
-const dropdown = document.getElementById("projectDropdown");
+const projectDropdown = document.getElementById("projectDropdown");
 const templateNameInput = document.getElementById("templateName");
 const templateDescriptionInput = document.getElementById("templateDescription");
 const generateButton = document.getElementById("generateButton");
@@ -16,13 +16,20 @@ const excludedPathsList = document.getElementById("excludePathsList");
 const previousState = vscode.getState();
 let excludedPaths = [];
 let projectFile;
+let selectedLanguageTags = [];
+let selectedPlatformTags = [];
+let selectedProjectTypeTags = [];
 
 if (previousState) {
-  dropdown.value = previousState.selectedProject;
+  projectDropdown.value = previousState.selectedProject;
   templateNameInput.value = previousState.templateName ?? "";
   templateDescriptionInput.value = previousState.templateDescription ?? "";
   excludedPaths = previousState.excludedPaths ?? [];
   projectFile = previousState.projectFile;
+  selectedLanguageTags = previousState.selectedLanguageTags ?? [];
+  selectedPlatformTags = previousState.selectedPlatformTags ?? [];
+  selectedProjectTypeTags = previousState.selectedProjectTypeTags ?? [];
+
   renderList();
 
   if (previousState.selectedProject) {
@@ -73,40 +80,6 @@ const projectTypeTags = [
   "winui",
 ];
 
-// To store selected values
-let selectedLanguageTags = [];
-let selectedPlatformTags = [];
-let selectedProjectTypeTags = [];
-
-// Populating dropdowns with checkboxes
-function populateDropdown(dropdownId, items, selectedArray, dropdownLabelId) {
-  const dropdown = document.getElementById(dropdownId);
-  items.forEach((item) => {
-    const label = document.createElement("label");
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.value = item;
-
-    // Handle checkbox change event
-    checkbox.addEventListener("change", function () {
-      if (checkbox.checked) {
-        selectedArray.push(checkbox.value);
-      } else {
-        selectedArray = selectedArray.filter((tag) => tag !== checkbox.value);
-      }
-      const selectedText =
-        selectedArray.length > 0
-          ? selectedArray.join(", ")
-          : `-- Select Items --`;
-      document.getElementById(dropdownLabelId).innerText = selectedText;
-    });
-
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode(item));
-    dropdown.appendChild(label);
-  });
-}
-
 // Initialize dropdowns
 populateDropdown(
   "languageTagDropdown",
@@ -129,34 +102,23 @@ populateDropdown(
 
 document.querySelectorAll(".dropdown").forEach((dropdown) => {
   dropdown.addEventListener("click", function () {
+    closeDropdowns(dropdown);
     const container = this.parentElement;
     container.classList.toggle("active");
   });
 });
 
-// Dropdown toggle logic
-function toggleDropdown(dropdownContainerId) {
-  const container = document.getElementById(dropdownContainerId);
-  container.classList.toggle("active");
+function closeDropdowns(currentDropdown) {
+  const dropDownContainer = document.querySelector(
+    ".dropdown-container.active"
+  );
+  if (
+    dropDownContainer &&
+    dropDownContainer.children.item(1).id !== currentDropdown.id
+  ) {
+    dropDownContainer.classList.remove("active");
+  }
 }
-
-document
-  .getElementById("languageDropdown")
-  .addEventListener("click", function () {
-    toggleDropdown("languageDropdown");
-  });
-
-document
-  .getElementById("platformDropdown")
-  .addEventListener("click", function () {
-    toggleDropdown("platformDropdown");
-  });
-
-document
-  .getElementById("projectTypeDropdown")
-  .addEventListener("click", function () {
-    toggleDropdown("projectTypeDropdown");
-  });
 
 function removePath(index) {
   excludedPaths.splice(index, 1);
@@ -165,9 +127,7 @@ function removePath(index) {
   const currentState = vscode.getState();
   if (currentState) {
     vscode.setState({
-      selectedProject: currentState.selectedProject,
-      templateName: currentState.templateName,
-      templateDescription: currentState.templateDescription,
+      ...currentState,
       excludedPaths: excludedPaths,
     });
   }
@@ -204,10 +164,7 @@ addExcludePathButton.addEventListener("click", function () {
       const currentState = vscode.getState();
       if (currentState) {
         vscode.setState({
-          selectedProject: currentState.selectedProject,
-          templateName: currentState.templateName,
-          templateDescription: currentState.templateDescription,
-          projectFile: currentState.projectFile,
+          ...currentState,
           excludedPaths: excludedPaths,
         });
       }
@@ -218,11 +175,9 @@ addExcludePathButton.addEventListener("click", function () {
 });
 
 // Handle dropdown change
-dropdown.addEventListener("change", function () {
+projectDropdown.addEventListener("change", function () {
   selectedProject = this.value;
-  templateNameInput.value = "";
-  templateDescriptionInput.value = "";
-  excludedPaths = [];
+  resetState();
   renderList();
 
   if (selectedProject) {
@@ -233,22 +188,13 @@ dropdown.addEventListener("change", function () {
 
   const selectedOption = this.options[this.selectedIndex];
   projectFile = selectedOption.getAttribute("data-project-file");
-
-  vscode.setState({
-    selectedProject: selectedProject,
-    projectFile: projectFile,
-    templateName: "",
-    templateDescription: "",
-    excludedPaths: [],
-  });
 });
 
 templateNameInput.addEventListener("input", function () {
   const currentState = vscode.getState();
   if (currentState) {
     vscode.setState({
-      selectedProject: currentState.selectedProject,
-      projectFile: currentState.projectFile,
+      ...currentState,
       templateName: templateNameInput.value,
     });
   }
@@ -258,9 +204,7 @@ templateDescription.addEventListener("input", function () {
   const currentState = vscode.getState();
   if (currentState) {
     vscode.setState({
-      selectedProject: currentState.selectedProject,
-      projectFile: currentState.projectFile,
-      templateName: currentState.templateName,
+      ...currentState,
       templateDescription: templateDescriptionInput.value,
     });
   }
@@ -286,7 +230,7 @@ generateButton.onclick = function () {
   if (isTemplateNameValid && isTemplateDescriptionValid) {
     vscode.postMessage({
       command: "generateTemplate",
-      selectedProject: dropdown.value,
+      selectedProject: projectDropdown.value,
       templateName: templateNameInput.value,
       templateDescription: templateDescriptionInput.value,
       projectFile: projectFile,
@@ -307,4 +251,122 @@ function validateField(field, errorElement) {
     errorElement.style.display = "none";
     return true;
   }
+}
+
+// Populating dropdowns with checkboxes
+function populateDropdown(
+  dropdownId,
+  items,
+  selectedArray,
+  dropdownLabelId,
+  reset = false
+) {
+  console.log(selectedArray);
+  const dropdown = document.getElementById(dropdownId);
+  const dropdownLabel = document.getElementById(dropdownLabelId);
+
+  if (selectedArray.length !== 0) {
+    const selectedText =
+      selectedArray.length > 0
+        ? selectedArray.join(", ")
+        : `-- Select Items --`;
+    dropdownLabel.innerText = selectedText;
+  }
+
+  if (reset) {
+    dropdownLabel.innerText = "-- Select Items --";
+    dropdown.innerHTML = "";
+  }
+
+  items.forEach((item) => {
+    const label = document.createElement("label");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = item;
+
+    if (selectedArray.includes(item)) {
+      checkbox.checked = true;
+    }
+
+    // Handle checkbox change event
+    checkbox.addEventListener("change", function () {
+      console.log("ciao");
+      if (checkbox.checked) {
+        selectedArray.push(checkbox.value);
+      } else {
+        selectedArray = selectedArray.filter((tag) => tag !== checkbox.value);
+      }
+      const selectedText =
+        selectedArray.length > 0
+          ? selectedArray.join(", ")
+          : `-- Select Items --`;
+      dropdownLabel.innerText = selectedText;
+
+      const currentState = vscode.getState();
+      if (currentState) {
+        vscode.setState({
+          ...currentState,
+          selectedLanguageTags:
+            dropdownLabelId === "languageDropdown"
+              ? selectedArray
+              : currentState.selectedLanguageTags,
+          selectedPlatformTags:
+            dropdownLabelId === "platformDropdown"
+              ? selectedArray
+              : currentState.selectedPlatformTags,
+          selectedProjectTypeTags:
+            dropdownLabelId === "projectTypeDropdown"
+              ? selectedArray
+              : currentState.selectedProjectTypeTags,
+        });
+      }
+    });
+
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(item));
+    dropdown.appendChild(label);
+    console.log(checkbox.checked);
+  });
+}
+
+function resetState() {
+  templateNameInput.value = "";
+  templateDescriptionInput.value = "";
+  excludedPaths = [];
+  selectedLanguageTags = [];
+  selectedPlatformTags = [];
+  selectedProjectTypeTags = [];
+
+  vscode.setState({
+    selectedProject: selectedProject,
+    projectFile: projectFile,
+    templateName: "",
+    templateDescription: "",
+    excludedPaths: [],
+    selectedLanguageTags: [],
+    selectedPlatformTags: [],
+    selectedProjectTypeTags: [],
+  });
+
+  populateDropdown(
+    "languageTagDropdown",
+    languageTags,
+    selectedLanguageTags,
+    "languageDropdown",
+    true
+  );
+  populateDropdown(
+    "platformTagDropdown",
+    platformTags,
+    selectedPlatformTags,
+    "platformDropdown",
+    true
+  );
+  populateDropdown(
+    "projectTypeTagDropdown",
+    projectTypeTags,
+    selectedProjectTypeTags,
+    "projectTypeDropdown",
+    true
+  );
 }
