@@ -228,9 +228,8 @@ export class TemplateGenerator {
     if (projectType === "Unknown") {
       throw "Unsupported type of project";
     }
-    const defaultName = path
-      .basename(projectFile)
-      .replace(path.extname(projectFile).toLowerCase(), "");
+    const projectFileExt = path.extname(projectFile).toLowerCase();
+    const defaultName = path.basename(projectFile).replace(projectFileExt, "");
     return `<?xml version="1.0" encoding="utf-8"?>
     <VSTemplate Version="3.0.0" Type="Project" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
       <TemplateData>
@@ -247,7 +246,7 @@ export class TemplateGenerator {
         <Icon>__TemplateIcon.ico</Icon>
       </TemplateData>
       <TemplateContent>
-        <Project File="${projectFile}" TargetFileName="${projectFile}" ReplaceParameters="true">
+        <Project File="${projectFile}" TargetFileName="$safeprojectname$${projectFileExt}" ReplaceParameters="true">
           ${projectItemsXml.trim()}
         </Project>
       </TemplateContent>
