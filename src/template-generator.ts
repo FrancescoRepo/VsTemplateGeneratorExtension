@@ -236,6 +236,7 @@ export class TemplateGenerator {
         <Name>${templateName}</Name>
         <Description>${templateDescription}</Description>
         <ProjectType>${projectType}</ProjectType>
+        <LanguageTag>${projectType.toLowerCase()}</LanguageTag>
         <SortOrder>1000</SortOrder>
         <CreateNewFolder>true</CreateNewFolder>
         <DefaultName>${defaultName}</DefaultName>

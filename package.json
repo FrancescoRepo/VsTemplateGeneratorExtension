@@ -1,8 +1,9 @@
 {
   "name": "vstemplategenerator",
   "displayName": "VsTemplateGenerator",
-  "description": "An extesion for VsCode to generate a .vstemplate from a dotnet project",
-  "version": "0.0.1",
+  "description": "An extesion for VsCode to generate a .vstemplate for each project in a solution",
+  "version": "0.1.0",
+  "publisher": "Francesco Colaianni",
   "engines": {
     "vscode": "^1.93.0"
   },

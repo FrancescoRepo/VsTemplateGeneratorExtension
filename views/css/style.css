@@ -98,3 +98,86 @@ li {
   justify-content: space-between;
   margin-bottom: 5px;
 }
+
+.dropdown-container {
+  margin-bottom: 20px;
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.dropdown {
+  width: 100%;
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  padding: 4px;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  border-radius: 4px;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none; /* Remove default select styles */
+  background-color: #252526;
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140"><polygon points="70,100 130,40 10,40" fill="%23d4d4d4"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px; /* Size of the arrow */
+}
+
+.dropdown-container.active .dropdown {
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140"><polygon points="70,40 130,100 10,100" fill="%23d4d4d4"/></svg>'); /* Up arrow */
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #252526;
+  border: 1px solid #3c3c3c;
+  z-index: 1;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  border-radius: 3px;
+}
+
+.dropdown-content label {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  cursor: pointer;
+  color: #d4d4d4;
+}
+
+.dropdown-content label:hover {
+  background-color: #3e3e3e;
+}
+
+.dropdown-content input[type="checkbox"] {
+  margin-right: 10px;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #d4d4d4;
+  background-color: #1e1e1e;
+  border-radius: 2px;
+}
+
+.dropdown-content input[type="checkbox"]:checked {
+  background-color: #007acc;
+}
+
+.dropdown-container.active .dropdown-content {
+  display: block;
+}
+
+.info-icon {
+  margin-left: 10px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.info-icon img {
+  width: 16px;
+  height: 16px;
+}

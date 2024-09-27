@@ -30,6 +30,134 @@ if (previousState) {
   }
 }
 
+// Arrays with strings to populate dropdowns
+const languageTags = [
+  "cpp",
+  "csharp",
+  "fsharp",
+  "java",
+  "javascript",
+  "python",
+  "queryLanguage",
+  "typescript",
+  "visualbasic",
+  "xaml",
+];
+const platformTags = [
+  "windows",
+  "linux",
+  "android",
+  "azure",
+  "ios",
+  "macos",
+  "tvos",
+  "windowsappsdk",
+  "xbox",
+];
+const projectTypeTags = [
+  "cloud",
+  "console",
+  "desktop",
+  "extension",
+  "games",
+  "iot",
+  "library",
+  "machinelearning",
+  "mobile",
+  "office",
+  "other",
+  "service",
+  "test",
+  "uwp",
+  "web",
+  "winui",
+];
+
+// To store selected values
+let selectedLanguageTags = [];
+let selectedPlatformTags = [];
+let selectedProjectTypeTags = [];
+
+// Populating dropdowns with checkboxes
+function populateDropdown(dropdownId, items, selectedArray, dropdownLabelId) {
+  const dropdown = document.getElementById(dropdownId);
+  items.forEach((item) => {
+    const label = document.createElement("label");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = item;
+
+    // Handle checkbox change event
+    checkbox.addEventListener("change", function () {
+      if (checkbox.checked) {
+        selectedArray.push(checkbox.value);
+      } else {
+        selectedArray = selectedArray.filter((tag) => tag !== checkbox.value);
+      }
+      const selectedText =
+        selectedArray.length > 0
+          ? selectedArray.join(", ")
+          : `-- Select Items --`;
+      document.getElementById(dropdownLabelId).innerText = selectedText;
+    });
+
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(item));
+    dropdown.appendChild(label);
+  });
+}
+
+// Initialize dropdowns
+populateDropdown(
+  "languageTagDropdown",
+  languageTags,
+  selectedLanguageTags,
+  "languageDropdown"
+);
+populateDropdown(
+  "platformTagDropdown",
+  platformTags,
+  selectedPlatformTags,
+  "platformDropdown"
+);
+populateDropdown(
+  "projectTypeTagDropdown",
+  projectTypeTags,
+  selectedProjectTypeTags,
+  "projectTypeDropdown"
+);
+
+document.querySelectorAll(".dropdown").forEach((dropdown) => {
+  dropdown.addEventListener("click", function () {
+    const container = this.parentElement;
+    container.classList.toggle("active");
+  });
+});
+
+// Dropdown toggle logic
+function toggleDropdown(dropdownContainerId) {
+  const container = document.getElementById(dropdownContainerId);
+  container.classList.toggle("active");
+}
+
+document
+  .getElementById("languageDropdown")
+  .addEventListener("click", function () {
+    toggleDropdown("languageDropdown");
+  });
+
+document
+  .getElementById("platformDropdown")
+  .addEventListener("click", function () {
+    toggleDropdown("platformDropdown");
+  });
+
+document
+  .getElementById("projectTypeDropdown")
+  .addEventListener("click", function () {
+    toggleDropdown("projectTypeDropdown");
+  });
+
 function removePath(index) {
   excludedPaths.splice(index, 1);
   renderList();
