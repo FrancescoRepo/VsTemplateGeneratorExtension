@@ -33,15 +33,16 @@ The **Visual Studio Code Template Generator Extension** is a powerful tool desig
 
 1. **Select Project**: Choose a project from your solution to base your template on.
 2. **Configure Template**: Set the template name, description, and any other necessary parameters.
-3. **Generate Template**: Click the button to generate a `.vstemplate` file, which will be saved in the designated output directory.
+3. **Generate Template**: Click the button to generate the output.
+
+![Alt text for your GIF](./resources/vstemplategenerator_cropped.gif)
 
 ## Project Structure
 
-When a template is generated, it will include:
+When a template is generated, a zip file will be created, that will include:
 
-- A `.vstemplate` file that defines the structure and content of the template.
+- A `.vstemplate` file that defines the structure and content of the template. When you open it, you have to format it (you can use any extension you prefer)
 - Any specified project files, excluding those marked for exclusion.
-- A zip file containing all necessary project assets.
 
 ### License
 

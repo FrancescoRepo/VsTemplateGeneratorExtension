@@ -1,9 +1,9 @@
 {
   "name": "vstemplategenerator",
-  "displayName": "VsTemplate Generator",
+  "displayName": "VsTemplate File Generator",
   "description": "An extesion for Visual Studio Code to generate a Project Template for each project in a solution",
   "version": "1.0.0",
-  "publisher": "Francesco Colaianni",
+  "publisher": "FrancescoColaianni",
   "icon": "resources/logo.webp",
   "engines": {
     "vscode": "^1.93.0"
@@ -18,8 +18,8 @@
       "activitybar": [
         {
           "id": "mySolutionExplorer",
-          "title": "🛠 VsTemplate Generator",
-          "icon": "resources/icon.png"
+          "title": "🛠 VsTemplate File Generator",
+          "icon": "$(notebook)"
         }
       ]
     },

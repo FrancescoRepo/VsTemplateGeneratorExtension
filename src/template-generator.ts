@@ -235,9 +235,7 @@ export class TemplateGenerator {
       <TemplateData>
         <Name>${templateName}</Name>
         <Description>${templateDescription}</Description>
-        <ProjectType>${projectType.toLocaleLowerCase()}</ProjectType>
-        ${languageTags !== "" ? languageTags : ""}
-        ${platformTags !== "" ? platformTags : ""}
+        <ProjectType>${projectType.toLocaleLowerCase()}</ProjectType>${languageTags || ""}${platformTags || ""}
         <SortOrder>1000</SortOrder>
         <CreateNewFolder>true</CreateNewFolder>
         <DefaultName>${defaultName}</DefaultName>
