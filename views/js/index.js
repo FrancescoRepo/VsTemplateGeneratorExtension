@@ -13,22 +13,25 @@ const excludePathInput = document.getElementById("excludePathInput");
 const addExcludePathButton = document.getElementById("addExcludePathButton");
 const excludedPathsList = document.getElementById("excludePathsList");
 
-const previousState = vscode.getState();
 let excludedPaths = [];
 let projectFile;
 let selectedLanguageTags = [];
 let selectedPlatformTags = [];
-let selectedProjectTypeTags = [];
 
+const previousState = vscode.getState();
 if (previousState) {
   projectDropdown.value = previousState.selectedProject;
   templateNameInput.value = previousState.templateName ?? "";
   templateDescriptionInput.value = previousState.templateDescription ?? "";
   excludedPaths = previousState.excludedPaths ?? [];
-  projectFile = previousState.projectFile;
+  projectFile =
+    previousState.projectFile ??
+    Array.from(projectDropdown.children)
+      .find((project) => project.innerText == previousState.selectedProject)
+      .getAttribute("data-project-file");
+
   selectedLanguageTags = previousState.selectedLanguageTags ?? [];
   selectedPlatformTags = previousState.selectedPlatformTags ?? [];
-  selectedProjectTypeTags = previousState.selectedProjectTypeTags ?? [];
 
   renderList();
 
@@ -61,24 +64,6 @@ const platformTags = [
   "windowsappsdk",
   "xbox",
 ];
-const projectTypeTags = [
-  "cloud",
-  "console",
-  "desktop",
-  "extension",
-  "games",
-  "iot",
-  "library",
-  "machinelearning",
-  "mobile",
-  "office",
-  "other",
-  "service",
-  "test",
-  "uwp",
-  "web",
-  "winui",
-];
 
 // Initialize dropdowns
 populateDropdown(
@@ -93,13 +78,8 @@ populateDropdown(
   selectedPlatformTags,
   "platformDropdown"
 );
-populateDropdown(
-  "projectTypeTagDropdown",
-  projectTypeTags,
-  selectedProjectTypeTags,
-  "projectTypeDropdown"
-);
 
+// Handle click on dropdowns
 document.querySelectorAll(".dropdown").forEach((dropdown) => {
   dropdown.addEventListener("click", function () {
     closeDropdowns(dropdown);
@@ -108,6 +88,7 @@ document.querySelectorAll(".dropdown").forEach((dropdown) => {
   });
 });
 
+// Close all dropdowns active
 function closeDropdowns(currentDropdown) {
   const dropDownContainer = document.querySelector(
     ".dropdown-container.active"
@@ -120,6 +101,7 @@ function closeDropdowns(currentDropdown) {
   }
 }
 
+// Remove excluded path from list
 function removePath(index) {
   excludedPaths.splice(index, 1);
   renderList();
@@ -174,7 +156,7 @@ addExcludePathButton.addEventListener("click", function () {
   }
 });
 
-// Handle dropdown change
+// Handle project dropdown change
 projectDropdown.addEventListener("change", function () {
   selectedProject = this.value;
   resetState();
@@ -190,6 +172,7 @@ projectDropdown.addEventListener("change", function () {
   projectFile = selectedOption.getAttribute("data-project-file");
 });
 
+// Handle Template Name input
 templateNameInput.addEventListener("input", function () {
   const currentState = vscode.getState();
   if (currentState) {
@@ -200,6 +183,7 @@ templateNameInput.addEventListener("input", function () {
   }
 });
 
+// Handle Template Description input
 templateDescription.addEventListener("input", function () {
   const currentState = vscode.getState();
   if (currentState) {
@@ -235,12 +219,15 @@ generateButton.onclick = function () {
       templateDescription: templateDescriptionInput.value,
       projectFile: projectFile,
       excludePaths: excludedPaths,
+      selectedLanguageTags: selectedLanguageTags,
+      selectedPlatformTags: selectedPlatformTags,
     });
   } else {
     alert("Please fill in all required fields.");
   }
 };
 
+// Validate Template Name and Description fields
 function validateField(field, errorElement) {
   if (!field.value.trim()) {
     field.classList.add("error");
@@ -314,10 +301,6 @@ function populateDropdown(
             dropdownLabelId === "platformDropdown"
               ? selectedArray
               : currentState.selectedPlatformTags,
-          selectedProjectTypeTags:
-            dropdownLabelId === "projectTypeDropdown"
-              ? selectedArray
-              : currentState.selectedProjectTypeTags,
         });
       }
     });
@@ -329,13 +312,13 @@ function populateDropdown(
   });
 }
 
+// Reset variables and vs state
 function resetState() {
   templateNameInput.value = "";
   templateDescriptionInput.value = "";
   excludedPaths = [];
   selectedLanguageTags = [];
   selectedPlatformTags = [];
-  selectedProjectTypeTags = [];
 
   vscode.setState({
     selectedProject: selectedProject,
@@ -345,7 +328,6 @@ function resetState() {
     excludedPaths: [],
     selectedLanguageTags: [],
     selectedPlatformTags: [],
-    selectedProjectTypeTags: [],
   });
 
   populateDropdown(
@@ -360,13 +342,6 @@ function resetState() {
     platformTags,
     selectedPlatformTags,
     "platformDropdown",
-    true
-  );
-  populateDropdown(
-    "projectTypeTagDropdown",
-    projectTypeTags,
-    selectedProjectTypeTags,
-    "projectTypeDropdown",
     true
   );
 }

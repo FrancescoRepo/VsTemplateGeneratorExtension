@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import { TemplateGenerator } from "./template-generator";
 import { IProject } from "./models/IProject";
+import { ITemplateInfo } from "./models/ITemplateInfo";
 
 export class SolutionExplorerWebview implements vscode.WebviewViewProvider {
   private _htmlFilePath: any | undefined;
@@ -44,14 +45,17 @@ export class SolutionExplorerWebview implements vscode.WebviewViewProvider {
         );
       } else if (message.command === "generateTemplate") {
         const templateGenerator = new TemplateGenerator();
-        templateGenerator.createZipWithTemplate(
-          message.selectedProject,
-          message.templateName,
-          message.templateDescription,
-          message.projectFile,
-          message.excludePaths,
-          this.context.extensionPath
-        );
+        const templateInfo: ITemplateInfo = {
+          selectedProject: message.selectedProject,
+          templateName: message.templateName,
+          templateDescription: message.templateDescription,
+          projectFile: message.projectFile,
+          excludedPaths: message.excludePaths,
+          extensionPath: this.context.extensionPath,
+          selectedLanguageTags: message.selectedLanguageTags,
+          selectedPlatformTags: message.selectedPlatformTags,
+        };
+        templateGenerator.createZipWithTemplate(templateInfo);
       }
     });
 

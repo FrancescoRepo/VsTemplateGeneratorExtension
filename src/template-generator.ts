@@ -2,21 +2,14 @@ import path from "path";
 import * as vscode from "vscode";
 import * as fs from "fs";
 import archiver from "archiver";
-import { Uri } from "vscode";
 import { exec } from "child_process";
+import { ITemplateInfo } from "./models/ITemplateInfo";
 
 export class TemplateGenerator {
-  public createZipWithTemplate(
-    selectedProject: string,
-    templateName: string,
-    templateDescription: string,
-    projectFile: string,
-    excludedPaths: string[],
-    extensionPath: string
-  ) {
+  public createZipWithTemplate(templateInfo: ITemplateInfo) {
     try {
-      const projectPath = this.getProjectPath(selectedProject);
-      const zipFileName = `${templateName}.zip`;
+      const projectPath = this.getProjectPath(templateInfo.selectedProject);
+      const zipFileName = `${templateInfo.templateName}.zip`;
       const output = fs.createWriteStream(path.join(projectPath, zipFileName));
       const archive = archiver("zip", {
         zlib: { level: 9 }, // Set the compression level
@@ -35,19 +28,15 @@ export class TemplateGenerator {
       // Pipe the archive to the output file
       archive.pipe(output);
 
-      const vstemplateContent = this.generateVSTemplate(
-        selectedProject,
-        templateName,
-        templateDescription,
-        projectFile,
-        excludedPaths
-      );
+      const vstemplateContent = this.generateVSTemplate(templateInfo);
 
       // Add the .vstemplate file content to the zip
-      archive.append(vstemplateContent, { name: `${templateName}.vstemplate` });
+      archive.append(vstemplateContent, {
+        name: `${templateInfo.templateName}.vstemplate`,
+      });
 
       const templateIcon = path.join(
-        extensionPath,
+        templateInfo.extensionPath,
         "resources",
         "TemplateIcon.ico"
       );
@@ -58,7 +47,7 @@ export class TemplateGenerator {
         archive,
         projectPath,
         projectPath,
-        excludedPaths
+        templateInfo.excludedPaths
       );
 
       // Finalize the archive
@@ -133,17 +122,11 @@ export class TemplateGenerator {
     });
   }
 
-  private generateVSTemplate(
-    selectedProject: string,
-    templateName: string,
-    templateDescription: string,
-    projectFile: string,
-    excludedPaths: string[]
-  ): string {
-    const projectPath = this.getProjectPath(selectedProject);
+  private generateVSTemplate(templateInfo: ITemplateInfo): string {
+    const projectPath = this.getProjectPath(templateInfo.selectedProject);
     if (!fs.existsSync(projectPath)) {
       vscode.window.showErrorMessage(
-        `Project folder not found: ${selectedProject}`
+        `Project folder not found: ${templateInfo.selectedProject}`
       );
       return "";
     }
@@ -152,14 +135,16 @@ export class TemplateGenerator {
     const projectItemsXml = this.getProjectItemsXml(
       projectPath,
       projectPath,
-      excludedPaths
+      templateInfo.excludedPaths
     ); // passing projectPath twice for relative paths
 
     const vstemplateContent = this.createVSTemplateContent(
-      templateName,
-      templateDescription,
+      templateInfo.templateName,
+      templateInfo.templateDescription,
       projectItemsXml,
-      projectFile
+      templateInfo.projectFile,
+      templateInfo.selectedLanguageTags,
+      templateInfo.selectedPlatformTags
     );
 
     return vstemplateContent;
@@ -222,7 +207,9 @@ export class TemplateGenerator {
     templateName: string,
     templateDescription: string,
     projectItemsXml: string,
-    projectFile: string
+    projectFile: string,
+    selectedLanguageTags: string[],
+    selectedPlatformTags: string[]
   ): string {
     const projectType = this.getProjectType(projectFile);
     if (projectType === "Unknown") {
@@ -230,13 +217,27 @@ export class TemplateGenerator {
     }
     const projectFileExt = path.extname(projectFile).toLowerCase();
     const defaultName = path.basename(projectFile).replace(projectFileExt, "");
+
+    let languageTags: string = "";
+    selectedLanguageTags.forEach((languageTag: string) => {
+      languageTags += `<LanguageTag>${languageTag}</LanguageTag>\n`;
+    });
+    languageTags = languageTags.replace(/\n$/, "");
+
+    let platformTags: string = "";
+    selectedPlatformTags.forEach((platformTag: string) => {
+      platformTags += `<PlatformTag>${platformTag}</PlatformTag>\n`;
+    });
+    platformTags = platformTags.replace(/\n$/, "");
+
     return `<?xml version="1.0" encoding="utf-8"?>
     <VSTemplate Version="3.0.0" Type="Project" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
       <TemplateData>
         <Name>${templateName}</Name>
         <Description>${templateDescription}</Description>
-        <ProjectType>${projectType}</ProjectType>
-        <LanguageTag>${projectType.toLowerCase()}</LanguageTag>
+        <ProjectType>${projectType.toLocaleLowerCase()}</ProjectType>
+        ${languageTags !== "" ? languageTags : ""}
+        ${platformTags !== "" ? platformTags : ""}
         <SortOrder>1000</SortOrder>
         <CreateNewFolder>true</CreateNewFolder>
         <DefaultName>${defaultName}</DefaultName>
